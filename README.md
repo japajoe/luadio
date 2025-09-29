@@ -10,10 +10,7 @@ This application lets you generate audio on the fly using Lua.
 - `git submodule update --init --recursive`
 - `mkdir build`
 - `cd build`
-On linux:
-- `cmake -DMINIAUDIOEX_BUILD_PLATFORM=linux_x86_64 ..`
-On Windows:
-- `cmake -DMINIAUDIOEX_BUILD_PLATFORM=windows ..`
-On Mac
-- `cmake -DMINIAUDIOEX_BUILD_PLATFORM=mac ..`
+- On linux: `cmake -DMINIAUDIOEX_BUILD_PLATFORM=linux_x86_64 ..`
+- On Windows: `cmake -DMINIAUDIOEX_BUILD_PLATFORM=windows ..`
+- On Mac: `cmake -DMINIAUDIOEX_BUILD_PLATFORM=mac ..`
 - `cmake --build .`
