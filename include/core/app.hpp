@@ -41,6 +41,8 @@ namespace luadio
 		std::vector<std::complex<double>> fftBuffer;
 		ma_ex_context *pContext;
 		ma_ex_audio_source *pSource;
+		ma_effect_node effectNode;
+		ma_sound_group soundGroup;
 		texture_2d knobTexture;
 		timer updateTimer;
 		plot_mode plotMode;
@@ -56,7 +58,9 @@ namespace luadio
 		void on_script_stop();
 		void on_script_update();
 		void update_fields();
-		void log_message(const std::string &message);
+		void on_log_message(const std::string &message);
+		void on_queue_audio(const std::string &filepath);
 		static void on_audio_read(void *pUserData, void *pFramesOut, ma_uint64 frameCount, ma_uint32 channels);
+		static void on_audio_effect(ma_node *pNode, const float **ppFramesIn, ma_uint32 *pFrameCountIn, float **ppFramesOut, ma_uint32 *pFrameCountOut);
 	};
 }

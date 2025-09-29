@@ -3,6 +3,7 @@
 namespace luadio
 {
 	static std::string gCode = R"(local ffi = require('ffi')
+local luadio = require('luadio')
 local wavetable = require('wavetable')
 local oscillator = require('oscillator')
 
@@ -10,6 +11,9 @@ local table1 = wavetable.create_with_wave_type(wavetable.wavetype.sine, 1024)
 local table2 = wavetable.create_with_wave_type(wavetable.wavetype.sine, 1024)
 local osc1 = oscillator.new(oscillator.wavetype.sine, 440, 0.5, 44100)
 local osc2 = oscillator.new(oscillator.wavetype.sine, 440, 0.5, 44100)
+
+[Checkbox]
+bypass = false
 
 [SliderFloat(20, 880)]
 frequency = 440.0
@@ -20,11 +24,11 @@ lfo = 3.3
 [SliderFloat(0.0, 1.0)]
 lfoDepth = 1.0
 
-[SliderFloat(0.0, 1.0)]
+[KnobFloat(0.0, 1.0, 64)]
 gain = 0.1
 
-[Checkbox]
-bypass = false
+[KnobFloat(0.0, 1.0, 64)]
+masterGain = 1.0
 
 --Runs after compilation
 function on_start()
@@ -61,6 +65,26 @@ function on_audio_read(data, length, channels)
             pData[i + 1] = sample
         end
     end
+end
+
+--Runs on separate thread
+function on_audio_effect(framesIn, frameCountIn, framesOut, frameCountOut, channels)
+    local pFramesIn = ffi.cast('float*', framesIn)
+    local pFrameCountIn = ffi.cast('unsigned int*', frameCountIn)
+    local pFramesOut = ffi.cast('float*', framesOut)
+    local pFrameCountOut = ffi.cast('unsigned int*', frameCountOut)
+
+    local countIn = pFrameCountIn[0]
+    local countOut = pFrameCountOut[0]
+    local totalSamples = countIn * channels
+
+    for i = 0, totalSamples-1 do
+        pFramesOut[i] = pFramesIn[i] * masterGain
+    end
+
+    pFrameCountIn[0] = countIn
+    pFrameCountOut[0] = countOut
+
 end)";
 
 	std::string script_template::get_source()

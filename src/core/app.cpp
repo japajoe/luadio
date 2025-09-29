@@ -17,6 +17,20 @@ namespace luadio
 		pContext = ma_ex_context_init(&contextConfig);
 		pSource = ma_ex_audio_source_init(pContext);
 
+		std::memset(&soundGroup, 0, sizeof(ma_sound_group));
+		std::memset(&effectNode, 0, sizeof(ma_effect_node));
+
+		ma_sound_group_init(&pContext->engine, 0, nullptr, &soundGroup);
+		ma_ex_audio_source_set_group(pSource, &soundGroup);
+
+		ma_effect_node_config effectNodeConfig = ma_effect_node_config_init(2, 44100, on_audio_effect, this);
+
+		if (ma_effect_node_init(ma_engine_get_node_graph(&pContext->engine), &effectNodeConfig, nullptr, &effectNode) == MA_SUCCESS)
+		{
+			ma_node_attach_output_bus(&effectNode, 0, ma_engine_get_endpoint(&pContext->engine), 0);
+			ma_node_attach_output_bus(&soundGroup, 0, &effectNode, 0);
+		}
+
 		editor.SetShowHorizontalScrollbar(false);
 		auto palette = editor.GetDarkPalette();
 		palette[12] = ImColor(ImVec4(0.15f, 0.16f, 0.17f, 1.00f)); //background
@@ -36,8 +50,12 @@ namespace luadio
 			oscillatorModule.load(compiler::get_lua_state());
 			wavetableModule.load(compiler::get_lua_state());
 
-			luadio_module::onLog = [this] (const char *message) {
-				log_message(message);
+			luadio_module::onLog = [this] (const std::string &message) {
+				on_log_message(message);
+			};
+
+			luadio_module::onQueueAudio = [this] (const std::string &filePath) {
+				on_queue_audio(filePath);
 			};
 		}
 
@@ -60,10 +78,13 @@ namespace luadio
 
 		clear_fields();
 
-		ma_ex_context_uninit(pContext);
-		pContext = nullptr;
+		ma_ex_audio_source_stop(pSource);
+
 		ma_ex_audio_source_uninit(pSource);
 		pSource = nullptr;
+
+		ma_ex_context_uninit(pContext);
+		pContext = nullptr;
 	}
 	
 	void app::on_update() 
@@ -86,18 +107,19 @@ namespace luadio
 					{
 						logText += item.message + "\n";
 					}
-				}
-				else if(item.type == item_type_audio)
-				{
-					if(item.message.size() > 0)
+					else if(item.type == item_type_audio)
 					{
-						ma_ex_audio_source_play_from_file(pSource, item.message.c_str(), MA_TRUE);
-					}
-					else
-					{
-						ma_ex_audio_source_play_from_callback(pSource, on_audio_read, this);
+						if(item.message.size() > 0)
+						{
+							ma_ex_audio_source_play_from_file(pSource, item.message.c_str(), MA_TRUE);
+						}
+						else
+						{
+							ma_ex_audio_source_play_from_callback(pSource, on_audio_read, this);
+						}
 					}
 				}
+
 			}
 		}
 	}
@@ -239,14 +261,14 @@ namespace luadio
 
 				if (luaL_dostring(L, code.c_str()) == LUA_OK) 
 				{
-					log_message("Compile ok");
+					on_log_message("Compile ok");
 					on_script_start();
 					ma_ex_audio_source_play_from_callback(pSource, on_audio_read, this);
 				}
 				else
 				{
 					const char *pMessage = lua_tostring(L, -1);
-					log_message(pMessage);
+					on_log_message(pMessage);
 					lua_pop(L, 1);
 				}
 			}
@@ -540,9 +562,14 @@ namespace luadio
 		}
 	}
 
-	void app::log_message(const std::string &message)
+	void app::on_log_message(const std::string &message)
 	{
 		eventQueue.enqueue(queue_item(item_type_log, message));
+	}
+
+	void app::on_queue_audio(const std::string &filepath)
+	{
+		eventQueue.enqueue(queue_item(item_type_audio, filepath));
 	}
 
 	void app::on_audio_read(void *pUserData, void *pFramesOut, ma_uint64 frameCount, ma_uint32 channels)
@@ -551,9 +578,12 @@ namespace luadio
 
 		std::lock_guard<std::mutex> lock(pApp->luaMutex);
 
+		std::memset(pFramesOut, 0, frameCount * channels * sizeof(float));
+
 		lua_State *L = compiler::get_lua_state();
 
-		memset(pFramesOut, 0, frameCount * channels * sizeof(float));
+		if(L == nullptr)
+			return;
 
 		lua_getglobal(L, "on_audio_read");
 
@@ -565,8 +595,53 @@ namespace luadio
 
 			if(lua_pcall(L, 3, 0, 0) == 0)
 			{
-				float *pData = reinterpret_cast<float*>(pFramesOut);
-				pApp->concurrentBuffer.write(pData, frameCount * channels);
+				// float *pData = reinterpret_cast<float*>(pFramesOut);
+				// pApp->concurrentBuffer.write(pData, frameCount * channels);
+			}
+		}
+
+		int top = lua_gettop(L);
+
+		if(top > 0)
+			lua_pop(L, top);
+	}
+
+	void app::on_audio_effect(ma_node *pNode, const float **ppFramesIn, ma_uint32 *pFrameCountIn, float **ppFramesOut, ma_uint32 *pFrameCountOut)
+	{
+		ma_effect_node *pEffectNode = reinterpret_cast<ma_effect_node*>(pNode);
+		app *pApp = reinterpret_cast<app*>(pEffectNode->config.pUserData);
+		
+		std::lock_guard<std::mutex> lock(pApp->luaMutex);
+
+		const size_t sizeInBytes = *pFrameCountIn * 2 * sizeof(float);
+
+		std::memcpy(ppFramesOut[0], ppFramesIn[0], sizeInBytes);
+
+		lua_State *L = compiler::get_lua_state();
+
+		if(L == nullptr)
+			return;
+
+		lua_getglobal(L, "on_audio_effect");
+
+		if(lua_isfunction(L, -1))
+		{
+			void *framesIn = (void*)ppFramesIn[0];
+			void *frameCountIn = (void*)pFrameCountIn;
+			void *framesOut = (void*)ppFramesOut[0];
+			void *frameCountOut = (void*)pFrameCountOut;
+			int32_t channels = pEffectNode->config.channels;
+
+			lua_pushlightuserdata(L, framesIn);
+			lua_pushlightuserdata(L, frameCountIn);
+			lua_pushlightuserdata(L, framesOut);
+			lua_pushlightuserdata(L, frameCountOut);
+			lua_pushinteger(L, channels);
+
+			if(lua_pcall(L, 5, 0, 0) == 0)
+			{
+				const size_t sizeInSamples = *pFrameCountOut * 2;
+				pApp->concurrentBuffer.write(ppFramesOut[0], sizeInSamples);
 			}
 		}
 
