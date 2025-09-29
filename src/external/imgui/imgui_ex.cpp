@@ -1,9 +1,25 @@
 #include "imgui_ex.h"
+#include "../../system/image_utility.hpp"
+#include "../../core/texture_2d.hpp"
 #include <cmath>
 #include <algorithm>
 
 namespace ImGuiEx
 {
+	static luadio::texture_2d dotMatrixTexture;
+	
+	static void create_dot_matrix_texture()
+	{
+		if(dotMatrixTexture.get_id() > 0)
+			return;
+
+		auto pDotMatrixImage = luadio::image_utility::create_dot_matrix(128, 64, 1, 2, 255, 255, 255, 64);
+
+		dotMatrixTexture.generate(pDotMatrixImage);
+
+		delete pDotMatrixImage;
+	}
+
 	bool Knob(const char *label, ImKnobInfo knobInfo, const ImVec2 &size, float *value, float min, float max, int snapSteps)
 	{
 		ImVec2 cursorPosition = ImGui::GetCursorScreenPos();
@@ -98,7 +114,15 @@ namespace ImGuiEx
 
 		ImVec2 topLeft = windowPos;
 		ImVec2 bottomRight = ImVec2(windowPos.x + size.x, windowPos.y + size.y);
-		drawList->AddRectFilled(topLeft, bottomRight, ImGui::GetColorU32(backgroundColor));
+		//drawList->AddRectFilled(topLeft, bottomRight, ImGui::GetColorU32(backgroundColor));
+
+		create_dot_matrix_texture();
+
+		const ImVec2 uv_min(0, 0);
+		const ImVec2 uv_max(1, 1);
+		const ImU32 col = ImGui::GetColorU32(backgroundColor);
+
+		drawList->AddImage(ImTextureID(dotMatrixTexture.get_id()), topLeft, bottomRight, uv_min, uv_max, col);
 
 		// Loop through each channel
 		for (int channel = 0; channel < channels; channel++)
@@ -153,7 +177,15 @@ namespace ImGuiEx
 
 		ImVec2 topLeft = windowPos;
 		ImVec2 bottomRight = ImVec2(windowPos.x + size.x, windowPos.y + size.y);
-		drawList->AddRectFilled(topLeft, bottomRight, ImGui::GetColorU32(backgroundColor));
+		//drawList->AddRectFilled(topLeft, bottomRight, ImGui::GetColorU32(backgroundColor));
+
+		create_dot_matrix_texture();
+
+		const ImVec2 uv_min(0, 0);
+		const ImVec2 uv_max(1, 1);
+		const ImU32 col = ImGui::GetColorU32(backgroundColor);
+
+		drawList->AddImage(ImTextureID(dotMatrixTexture.get_id()), topLeft, bottomRight, uv_min, uv_max, col);
 
 		int numBins = count / 2; // Display only the first half
 

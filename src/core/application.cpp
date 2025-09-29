@@ -52,8 +52,8 @@ namespace luadio
 		}
 
 		gConfig.pWindow = nullptr;
-		gConfig.width = 512;
-		gConfig.height = 512;
+		gConfig.width = 800;
+		gConfig.height = 600;
 		gConfig.deltaTime = 0.0;
 		gConfig.lastTime = 0.0;
 

@@ -3,6 +3,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "../../libs/glfw/include/GLFW/glfw3.h"
+#include <filesystem>
 
 namespace luadio
 {
@@ -26,7 +27,12 @@ namespace luadio
 
         // Setup Dear ImGui style
         ImGui::StyleColorsDark();
-        //ImGui::StyleColorsLight();
+
+        if(!std::filesystem::exists("imgui.ini"))
+        {
+            const std::string settings = get_settings();
+            ImGui::LoadIniSettingsFromMemory(settings.c_str());
+        }
 
         // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
         ImGuiStyle& style = ImGui::GetStyle();
@@ -173,61 +179,52 @@ namespace luadio
     std::string imgui_manager::get_settings()
     {
         static const std::string settings = R"([Window][WindowOverViewport_11111111]
-Pos=0,0
-Size=906,600
+Pos=0,19
+Size=800,581
 Collapsed=0
 
 [Window][Debug##Default]
-ViewportPos=11,117
-ViewportId=0x16723995
+Pos=60,60
 Size=400,400
 Collapsed=0
 
-[Window][Test]
-Pos=16,12
-Size=308,218
+[Window][Text Editor]
+Size=512,512
 Collapsed=0
-
-[Window][Viewport]
-Pos=319,49
-Size=314,455
-Collapsed=0
-DockId=0x00000004,0
+DockId=0x00000002,0
 
 [Window][Code]
-Pos=0,49
-Size=317,455
+Pos=0,105
+Size=561,382
 Collapsed=0
-DockId=0x00000003,0
+DockId=0x00000002,0
 
 [Window][Log]
-Pos=0,506
-Size=633,94
+Pos=0,489
+Size=561,111
 Collapsed=0
 DockId=0x00000006,0
 
 [Window][Inspector]
-Pos=635,49
-Size=271,551
+Pos=563,19
+Size=237,581
 Collapsed=0
-DockId=0x00000002,0
+DockId=0x00000004,0
 
 [Window][Panel]
-Pos=0,0
-Size=906,47
+Pos=0,19
+Size=561,84
 Collapsed=0
-DockId=0x00000007,0
+DockId=0x00000001,0
 
 [Docking][Data]
-DockSpace         ID=0x08BD597D Window=0x1BBC0F80 Pos=29,57 Size=906,600 Split=Y
-  DockNode        ID=0x00000007 Parent=0x08BD597D SizeRef=1366,47 HiddenTabBar=1 Selected=0x323278BB
-  DockNode        ID=0x00000008 Parent=0x08BD597D SizeRef=1366,652 Split=X
-    DockNode      ID=0x00000001 Parent=0x00000008 SizeRef=878,600 Split=Y
-      DockNode    ID=0x00000005 Parent=0x00000001 SizeRef=878,455 Split=X Selected=0x440BB4FB
-        DockNode  ID=0x00000003 Parent=0x00000005 SizeRef=264,517 HiddenTabBar=1 Selected=0x440BB4FB
-        DockNode  ID=0x00000004 Parent=0x00000005 SizeRef=261,517 HiddenTabBar=1 Selected=0xC450F867
-      DockNode    ID=0x00000006 Parent=0x00000001 SizeRef=878,94 CentralNode=1 HiddenTabBar=1 Selected=0x139FDA3F
-    DockNode      ID=0x00000002 Parent=0x00000008 SizeRef=271,600 HiddenTabBar=1 Selected=0x36DC96AB
+DockSpace       ID=0x08BD597D Window=0x1BBC0F80 Pos=0,19 Size=800,581 Split=X Selected=0x54B0B812
+  DockNode      ID=0x00000003 Parent=0x08BD597D SizeRef=561,682 Split=Y
+    DockNode    ID=0x00000005 Parent=0x00000003 SizeRef=1366,569 Split=Y
+      DockNode  ID=0x00000001 Parent=0x00000005 SizeRef=1366,84 HiddenTabBar=1 Selected=0x323278BB
+      DockNode  ID=0x00000002 Parent=0x00000005 SizeRef=1366,483 CentralNode=1 HiddenTabBar=1 Selected=0x440BB4FB
+    DockNode    ID=0x00000006 Parent=0x00000003 SizeRef=1366,111 HiddenTabBar=1 Selected=0x139FDA3F
+  DockNode      ID=0x00000004 Parent=0x08BD597D SizeRef=237,682 HiddenTabBar=1 Selected=0x36DC96AB
 
 )";
         return settings;
