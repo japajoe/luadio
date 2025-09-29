@@ -1,0 +1,9 @@
+[submodule "libs/LuaJIT-cmake"]
+	path = libs/LuaJIT-cmake
+	url = https://github.com/9chu/LuaJIT-cmake.git
+[submodule "libs/glfw"]
+	path = libs/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "libs/miniaudioex"]
+	path = libs/miniaudioex
+	url = https://github.com/japajoe/miniaudioex.git
