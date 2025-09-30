@@ -655,18 +655,19 @@ namespace luadio
 	void app::on_audio_effect(ma_node *pNode, const float **ppFramesIn, ma_uint32 *pFrameCountIn, float **ppFramesOut, ma_uint32 *pFrameCountOut)
 	{
 		ma_effect_node *pEffectNode = reinterpret_cast<ma_effect_node*>(pNode);
-		app *pApp = reinterpret_cast<app*>(pEffectNode->config.pUserData);
-		
+		app *pApp = reinterpret_cast<app*>(pEffectNode->config.pUserData);		
 		std::lock_guard<std::mutex> lock(pApp->luaMutex);
-
-		const size_t sizeInBytes = *pFrameCountIn * 2 * sizeof(float);
-
-		std::memcpy(ppFramesOut[0], ppFramesIn[0], sizeInBytes);
-
 		lua_State *L = compiler::get_lua_state();
 
 		if(L == nullptr)
 			return;
+
+		if(ma_ex_audio_source_get_is_playing(pApp->pSource) == MA_FALSE)
+			return;
+
+		const size_t sizeInBytes = *pFrameCountIn * 2 * sizeof(float);
+
+		std::memcpy(ppFramesOut[0], ppFramesIn[0], sizeInBytes);
 
 		lua_getglobal(L, "on_audio_effect");
 
