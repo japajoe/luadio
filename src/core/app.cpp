@@ -69,7 +69,15 @@ namespace luadio
 		outputData.resize(1024);
 		std::memset(outputData.data(), 0, outputData.size() * sizeof(float));
 
-		plotMode = plot_mode_waveform;
+		constexpr auto getColorFromRGBA = [] (int r, int g, int b, int a) -> ImVec4 {
+			return ImVec4((float)r / 255, (float)g / 255, (float)b / 255, (float)a / 255);
+		};
+
+		waveformSettings.plotMode = plot_mode_waveform;
+		waveformSettings.foregroundColor = ImVec4(0.621f, 1.000f, 0.284f, 1.000f);
+		waveformSettings.backgroundColor = ImVec4(1, 1, 1, 1);
+		waveformSettings.selectedMode = 0;
+		menuState = menu_state_none;
 	}
 
 	void app::on_destroy() 
@@ -82,6 +90,9 @@ namespace luadio
 
 		ma_ex_audio_source_uninit(pSource);
 		pSource = nullptr;
+
+		ma_sound_group_uninit(&soundGroup);
+		ma_effect_node_uninit(&effectNode, nullptr);
 
 		ma_ex_context_uninit(pContext);
 		pContext = nullptr;
@@ -159,7 +170,62 @@ namespace luadio
 				ImGui::EndMenu();
 			}
 
+			if (ImGui::BeginMenu("Settings")) 
+			{
+				if (ImGui::MenuItem("Waveform")) 
+				{
+					menuState = menu_state_settings_visuals;
+				}
+
+				ImGui::EndMenu();
+			}
+
 			ImGui::EndMainMenuBar();
+		}
+
+		if(menuState == menu_state_settings_visuals)
+		{
+			bool show = (menuState == menu_state_settings_visuals);
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1);
+			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.200f, 0.220f, 0.240f, 1.000f));
+
+			if(ImGui::Begin("Waveform settings", &show))
+			{
+				ImGui::ColorEdit4("Foreground", &waveformSettings.foregroundColor.x);
+				ImGui::ColorEdit4("Background", &waveformSettings.backgroundColor.x);
+				
+				const char* items[] = { "Wave", "FFT" };
+
+				if (ImGui::BeginCombo("Mode", items[waveformSettings.selectedMode])) 
+				{
+					for (int i = 0; i < IM_ARRAYSIZE(items); i++) {
+						bool isSelected = (waveformSettings.selectedMode == i);
+						if (ImGui::Selectable(items[i], isSelected)) 
+						{
+							waveformSettings.selectedMode = i;
+							waveformSettings.plotMode = (plot_mode)i;
+						}
+						if (isSelected) 
+						{
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+					ImGui::EndCombo();
+				}
+
+
+
+			}
+			ImGui::End();
+
+			ImGui::PopStyleVar(1);
+			ImGui::PopStyleColor(1);
+
+			if(!show)
+			{
+				menuState = menu_state_none;
+			}
 		}
 	}
 
@@ -169,20 +235,6 @@ namespace luadio
 
 		size_t bufferSize = concurrentBuffer.read(outputData);
 
-		//rgb(174, 112, 255)
-		constexpr float r = 174.0f / 255;
-		constexpr float g = 112.0f / 255;
-		constexpr float b = 255.0f / 255;
-
-		constexpr auto getColorFromRGBA = [] (int r, int g, int b, int a) -> ImVec4 {
-			return ImVec4((float)r / 255, (float)g / 255, (float)b / 255, (float)a / 255);
-		};
-
-		ImVec4 foregroundColor = getColorFromRGBA(174, 112, 255, 255);
-
-		//rgb(179, 179, 179)
-		ImVec4 backgroundColor = getColorFromRGBA(179, 179, 179, 255);
-		
 		if(bufferSize > 0)
 		{
 			auto isPowerOfTwo = [] (size_t n) -> bool {
@@ -196,7 +248,7 @@ namespace luadio
 				return p;
 			};
 
-			if(plotMode == plot_mode_fft)
+			if(waveformSettings.plotMode == plot_mode_fft)
 			{
 				if(!isPowerOfTwo(outputData.size()))
 				{
@@ -222,22 +274,16 @@ namespace luadio
 
 				fft::perform(fftBuffer, fftBuffer.size());
 
-				if(ImGuiEx::DrawHistogram(fftBuffer.data(), fftBuffer.size(), ImVec2(128, 64), foregroundColor, backgroundColor))
-				{
-					plotMode = plot_mode_waveform;
-				}
+				ImGuiEx::DrawHistogram(fftBuffer.data(), fftBuffer.size(), ImVec2(128, 64), waveformSettings.foregroundColor, waveformSettings.backgroundColor);
 			}
 			else
 			{
-				if(ImGuiEx::DrawWaveform(outputData.data(), bufferSize / 2, 2, ImVec2(128, 64), foregroundColor, backgroundColor))
-				{
-					plotMode = plot_mode_fft;
-				}
+				ImGuiEx::DrawWaveform(outputData.data(), bufferSize / 2, 2, ImVec2(128, 64), waveformSettings.foregroundColor, waveformSettings.backgroundColor);
 			}
 		}
 		else
 		{
-			ImGuiEx::DrawWaveform(outputData.data(), outputData.size() / 2, 2, ImVec2(128, 64), foregroundColor, backgroundColor);
+			ImGuiEx::DrawWaveform(outputData.data(), outputData.size() / 2, 2, ImVec2(128, 64), waveformSettings.foregroundColor, waveformSettings.backgroundColor);
 		}
 		
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 132);

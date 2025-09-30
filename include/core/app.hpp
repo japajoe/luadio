@@ -21,6 +21,20 @@ namespace luadio
 		plot_mode_fft
 	};
 
+	enum menu_state
+	{
+		menu_state_settings_visuals,
+		menu_state_none
+	};
+
+	struct wave_form_settings
+	{
+		ImVec4 foregroundColor;
+		ImVec4 backgroundColor;
+		plot_mode plotMode;
+		int selectedMode;
+	};
+
 	class app : public application
 	{
 	public:
@@ -44,8 +58,9 @@ namespace luadio
 		ma_effect_node effectNode;
 		ma_sound_group soundGroup;
 		texture_2d knobTexture;
-		timer updateTimer;
-		plot_mode plotMode;
+		timer updateTimer;		
+		wave_form_settings waveformSettings;
+		menu_state menuState;
 		std::mutex luaMutex;
 		void show_menu();
 		void show_panel();
