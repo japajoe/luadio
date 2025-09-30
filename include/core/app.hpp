@@ -8,6 +8,7 @@
 #include "../system/concurrent_buffer.hpp"
 #include "../system/timer.hpp"
 #include "../system/fft.hpp"
+#include "../system/audio_recorder.hpp"
 #include "../../libs/miniaudioex/include/miniaudioex.h"
 #include <string>
 #include <vector>
@@ -59,6 +60,7 @@ namespace luadio
 		ma_sound_group soundGroup;
 		texture_2d knobTexture;
 		timer updateTimer;		
+		audio_recorder recorder;
 		wave_form_settings waveformSettings;
 		menu_state menuState;
 		std::mutex luaMutex;

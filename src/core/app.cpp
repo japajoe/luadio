@@ -8,6 +8,7 @@
 #include "../embedded/knobs.hpp"
 #include "image.hpp"
 #include <algorithm> //std::clamp
+#include <filesystem>
 
 namespace luadio
 {
@@ -78,6 +79,13 @@ namespace luadio
 		waveformSettings.backgroundColor = ImVec4(1, 1, 1, 1);
 		waveformSettings.selectedMode = 0;
 		menuState = menu_state_none;
+
+		std::filesystem::path dirPath = "recordings";
+		
+		if(!std::filesystem::exists(dirPath))
+		{
+			std::filesystem::create_directory(dirPath);
+		}
 	}
 
 	void app::on_destroy() 
@@ -88,11 +96,11 @@ namespace luadio
 
 		ma_ex_audio_source_stop(pSource);
 
+		ma_effect_node_uninit(&effectNode, nullptr);
+		ma_sound_group_uninit(&soundGroup);
+
 		ma_ex_audio_source_uninit(pSource);
 		pSource = nullptr;
-
-		ma_sound_group_uninit(&soundGroup);
-		ma_effect_node_uninit(&effectNode, nullptr);
 
 		ma_ex_context_uninit(pContext);
 		pContext = nullptr;
@@ -323,8 +331,30 @@ namespace luadio
 				on_script_stop();
 				ma_ex_audio_source_stop(pSource);
 			}
+		}
 
-			//audioSource.Play();
+		ImGui::SameLine();
+
+		bool isRecording = recorder.is_recording();
+
+		if(isRecording)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0, 0, 1));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0, 0, 1));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0, 0, 1));
+		}
+		
+		if(ImGui::Button(isRecording ? "Stop Recording" : "Start Recording"))
+		{
+			if(!isRecording)
+				recorder.start();
+			else
+				recorder.stop();
+		}
+
+		if(isRecording)
+		{
+			ImGui::PopStyleColor(3);
 		}
 
 		ImGui::PopStyleColor(2);
@@ -689,6 +719,11 @@ namespace luadio
 			{
 				const size_t sizeInSamples = *pFrameCountOut * 2;
 				pApp->concurrentBuffer.write(ppFramesOut[0], sizeInSamples);
+
+				if(pApp->recorder.is_recording())
+				{
+					pApp->recorder.on_process(ppFramesOut[0], *pFrameCountOut, 2);
+				}
 			}
 		}
 
