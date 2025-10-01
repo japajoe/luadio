@@ -3,6 +3,7 @@
 #include "../../core/texture_2d.hpp"
 #include <cmath>
 #include <algorithm>
+#include <sstream>
 
 namespace ImGuiEx
 {
@@ -224,5 +225,126 @@ namespace ImGuiEx
 					mouse.y >= topLeft.y && mouse.y < bottomRight.y;
 		bool clicked = hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
 		return clicked;
+	}
+
+	static const char ColorMarkerStart = '{';
+	static const char ColorMarkerEnd = '}';
+
+	static bool ProcessInlineHexColor(const std::string &text, ImVec4 &color)
+	{
+		int hexCount = text.size();
+		if (hexCount == 6 || hexCount == 8)
+		{
+			std::string hex = text;
+
+			uint32_t hexColor = 0;
+            std::stringstream ss;
+            ss << std::hex << text;
+            ss >> hexColor;
+
+			if (!ss.fail())
+			{
+				color.x = (float)((hexColor & 0x00FF0000) >> 16) / 255.0f;
+				color.y = (float)((hexColor & 0x0000FF00) >> 8) / 255.0f;
+				color.z = (float)(hexColor & 0x000000FF) / 255.0f;
+				color.w = 1.0f;
+
+				if (hexCount == 8)
+				{
+					color.w = (float)((hexColor & 0xFF000000) >> 24) / 255.0f;
+				}
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void TextWithColors(const std::string &str)
+	{
+		std::string tempStr = str;
+
+		bool pushedColorStyle = false;
+		int textStart = 0;
+		int textCur = 0;
+
+		while (textCur < tempStr.size())
+		{
+			if (tempStr[textCur] == ColorMarkerStart)
+			{
+				// Print accumulated text
+				if (textCur != textStart)
+				{
+					int length = textCur - textStart;
+					ImGui::TextUnformatted(tempStr.c_str() + textStart, tempStr.c_str() + textStart + length);
+					ImGui::SameLine(0.0f, 0.0f);
+				}
+
+				// Process color code
+				int colorStart = textCur + 1;
+				do
+				{
+					++textCur;
+				}
+				while (textCur < tempStr.size() && tempStr[textCur] != ColorMarkerEnd);
+
+				// Change color
+				if (pushedColorStyle)
+				{
+					ImGui::PopStyleColor();
+					pushedColorStyle = false;
+				}
+
+				ImVec4 textColor;
+				if (ProcessInlineHexColor(tempStr.substr(colorStart, textCur - colorStart), textColor))
+				{
+					ImGui::PushStyleColor(ImGuiCol_Text, textColor);
+					pushedColorStyle = true;
+				}
+
+				textStart = textCur + 1;
+			}
+			else if (tempStr[textCur] == '\n')
+			{
+				// Print accumulated text and go to the next line
+				int length = textCur - textStart;
+				ImGui::TextUnformatted(tempStr.c_str() + textStart, tempStr.c_str() + textStart + length);
+				textStart = textCur + 1;
+			}
+
+			++textCur;
+		}
+
+		if (textCur != textStart)
+		{
+			int length = textCur - textStart;
+			ImGui::TextUnformatted(tempStr.c_str() + textStart, tempStr.c_str() + textStart + length);
+		}
+		else
+		{
+			ImGui::NewLine();
+		}
+
+		if (pushedColorStyle)
+		{
+			ImGui::PopStyleColor();
+		}
+	}
+
+	bool Button(const char *text, const ImVec2 &size)
+	{
+		bool result = false;
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+
+		if(ImGui::Button(text, size))
+		{
+			result = true;
+		}
+
+		ImGui::PopStyleColor(2);
+
+		return result;
 	}
 }

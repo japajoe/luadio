@@ -124,7 +124,7 @@ namespace luadio
 				{
 					if(item.type == item_type_log)
 					{
-						logText += item.message + "\n";
+						logBox.AddLog(item.message);
 					}
 					else if(item.type == item_type_audio)
 					{
@@ -296,10 +296,7 @@ namespace luadio
 		
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 132);
 
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
-
-		if(ImGui::Button("Play/Stop"))
+		if(ImGuiEx::Button("Play/Stop"))
 		{
 			if(ma_ex_audio_source_get_is_playing(pSource) != MA_TRUE)
 			{
@@ -315,7 +312,6 @@ namespace luadio
 
 				if (luaL_dostring(L, code.c_str()) == LUA_OK) 
 				{
-					on_log_message("Compile ok");
 					on_script_start();
 					ma_ex_audio_source_play_from_callback(pSource, on_audio_read, this);
 				}
@@ -344,7 +340,7 @@ namespace luadio
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0, 0, 1));
 		}
 		
-		if(ImGui::Button(isRecording ? "Stop Recording" : "Start Recording"))
+		if(ImGuiEx::Button(isRecording ? "Stop Recording" : "Start Recording"))
 		{
 			if(!isRecording)
 				recorder.start();
@@ -356,8 +352,6 @@ namespace luadio
 		{
 			ImGui::PopStyleColor(3);
 		}
-
-		ImGui::PopStyleColor(2);
 
 		ImGui::End();
 	}
@@ -371,20 +365,7 @@ namespace luadio
 
     void app::show_log()
 	{
-		ImGui::Begin("Log");
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
-
-		if(ImGui::Button("Clear Log"))
-		{
-			logText.clear();
-		}
-
-		ImGui::PopStyleColor(2);
-
-		ImGui::InputTextMultiline("##ErrorLog", &logText, ImVec2(-FLT_MIN, -FLT_MIN), ImGuiInputTextFlags_ReadOnly);
-		ImGui::End();
+		logBox.Draw("Log");
 	}
 
     void app::show_inspector()

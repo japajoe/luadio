@@ -17,6 +17,8 @@ namespace ImGuiEx
 	bool Knob(const char *label, ImKnobInfo knobInfo, const ImVec2 &size, float *value, float min, float max, int snapSteps);
     bool DrawWaveform(const float *samples, int frameCount, int channels, const ImVec2 &size, const ImVec4 &foregroundColor, const ImVec4 &backgroundColor);
     bool DrawHistogram(const std::complex<double> *samples, int count, const ImVec2 &size, const ImVec4 &foregroundColor, const ImVec4 &backgroundColor);
+    void TextWithColors(const std::string &str);
+    bool Button(const char *text, const ImVec2 &size = ImVec2(0, 0));
 }
 
 #endif

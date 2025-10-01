@@ -3,6 +3,7 @@
 #include "queue_item.hpp"
 #include "texture_2d.hpp"
 #include "../external/imgui/TextEditor.h"
+#include "../external/imgui/imgui_logbox.hpp"
 #include "../system/concurrent_queue.hpp"
 #include "../system/tokenizer.hpp"
 #include "../system/concurrent_buffer.hpp"
@@ -46,7 +47,6 @@ namespace luadio
 		void on_gui() override;
 	private:
 		TextEditor editor;
-		std::string logText;
 		std::vector<lua_field*> fields;
 		std::vector<float> outputData;
 		concurrent_queue<queue_item> eventQueue;
@@ -61,6 +61,7 @@ namespace luadio
 		texture_2d knobTexture;
 		timer updateTimer;		
 		audio_recorder recorder;
+		imgui_logbox logBox;
 		wave_form_settings waveformSettings;
 		menu_state menuState;
 		std::mutex luaMutex;
