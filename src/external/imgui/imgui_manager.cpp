@@ -2,7 +2,8 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "../../libs/glfw/include/GLFW/glfw3.h"
+#include "../../../libs/glfw/include/GLFW/glfw3.h"
+#include "../../embedded/fa_regular_400.hpp"
 #include <filesystem>
 
 namespace luadio
@@ -50,7 +51,23 @@ namespace luadio
         ImGui_ImplOpenGL3_Init("#version 150");
     #endif
         
-        io.Fonts->AddFontDefault();        
+        io.Fonts->AddFontDefault();
+
+        ImFontConfig config;
+        config.MergeMode = 1;
+        config.FontDataOwnedByAtlas = false;
+        config.GlyphMinAdvanceX = 13.0f; // Use if you want to make the icon monospaced
+
+        static uint16_t ranges[2]
+        {
+            ICON_MIN_FA,
+            ICON_MAX_FA
+        };
+
+        auto font = io.Fonts->AddFontFromMemoryTTF((void*)fa_regular_400::get_data(), fa_regular_400::get_size(), 14, &config, ranges);
+
+        if(font)
+            io.Fonts->Build();
     }
 
     void imgui_manager::destroy()
@@ -184,8 +201,8 @@ Size=800,581
 Collapsed=0
 
 [Window][Debug##Default]
-Pos=60,60
-Size=400,400
+Pos=164,141
+Size=402,400
 Collapsed=0
 
 [Window][Text Editor]
@@ -195,36 +212,46 @@ DockId=0x00000002,0
 
 [Window][Code]
 Pos=0,105
-Size=561,382
+Size=582,362
 Collapsed=0
 DockId=0x00000002,0
 
 [Window][Log]
-Pos=0,489
-Size=561,111
+Pos=0,469
+Size=582,131
 Collapsed=0
 DockId=0x00000006,0
 
 [Window][Inspector]
-Pos=563,19
-Size=237,581
+Pos=584,19
+Size=216,581
 Collapsed=0
 DockId=0x00000004,0
 
 [Window][Panel]
 Pos=0,19
-Size=561,84
+Size=582,84
 Collapsed=0
 DockId=0x00000001,0
 
+[Window][Visuals]
+Pos=321,268
+Size=361,154
+Collapsed=0
+
+[Window][Waveform settings]
+Pos=229,197
+Size=277,163
+Collapsed=0
+
 [Docking][Data]
 DockSpace       ID=0x08BD597D Window=0x1BBC0F80 Pos=0,19 Size=800,581 Split=X Selected=0x54B0B812
-  DockNode      ID=0x00000003 Parent=0x08BD597D SizeRef=561,682 Split=Y
-    DockNode    ID=0x00000005 Parent=0x00000003 SizeRef=1366,569 Split=Y
+  DockNode      ID=0x00000003 Parent=0x08BD597D SizeRef=582,682 Split=Y
+    DockNode    ID=0x00000005 Parent=0x00000003 SizeRef=1366,459 Split=Y
       DockNode  ID=0x00000001 Parent=0x00000005 SizeRef=1366,84 HiddenTabBar=1 Selected=0x323278BB
-      DockNode  ID=0x00000002 Parent=0x00000005 SizeRef=1366,483 CentralNode=1 HiddenTabBar=1 Selected=0x440BB4FB
-    DockNode    ID=0x00000006 Parent=0x00000003 SizeRef=1366,111 HiddenTabBar=1 Selected=0x139FDA3F
-  DockNode      ID=0x00000004 Parent=0x08BD597D SizeRef=237,682 HiddenTabBar=1 Selected=0x36DC96AB
+      DockNode  ID=0x00000002 Parent=0x00000005 SizeRef=1366,373 CentralNode=1 HiddenTabBar=1 Selected=0x440BB4FB
+    DockNode    ID=0x00000006 Parent=0x00000003 SizeRef=1366,131 HiddenTabBar=1 Selected=0x139FDA3F
+  DockNode      ID=0x00000004 Parent=0x08BD597D SizeRef=216,682 HiddenTabBar=1 Selected=0x36DC96AB
 
 )";
         return settings;

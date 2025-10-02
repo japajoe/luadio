@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "../external/imgui/imgui_stdlib.h"
 #include "../external/imgui/imgui_ex.h"
+#include "../embedded/fa_regular_400.hpp"
 #include "../modules/luadio_module.hpp"
 #include "../modules/oscillator_module.hpp"
 #include "../modules/wavetable_module.hpp"
@@ -339,8 +340,13 @@ namespace luadio
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0, 0, 1));
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0, 0, 1));
 		}
+		else
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+		}
 		
-		if(ImGuiEx::Button(isRecording ? "Stop Recording" : "Start Recording"))
+		if(ImGui::Button(isRecording ? "Stop Recording" : "Start Recording"))
 		{
 			if(!isRecording)
 				recorder.start();
@@ -351,6 +357,10 @@ namespace luadio
 		if(isRecording)
 		{
 			ImGui::PopStyleColor(3);
+		}
+		else
+		{
+			ImGui::PopStyleColor(2);
 		}
 
 		ImGui::End();
@@ -649,12 +659,7 @@ namespace luadio
 			lua_pushlightuserdata(L, pFramesOut);
 			lua_pushinteger(L, (frameCount * channels));
 			lua_pushinteger(L, channels);
-
-			if(lua_pcall(L, 3, 0, 0) == 0)
-			{
-				// float *pData = reinterpret_cast<float*>(pFramesOut);
-				// pApp->concurrentBuffer.write(pData, frameCount * channels);
-			}
+			lua_pcall(L, 3, 0, 0);
 		}
 
 		int top = lua_gettop(L);
@@ -676,7 +681,7 @@ namespace luadio
 		if(ma_ex_audio_source_get_is_playing(pApp->pSource) == MA_FALSE)
 			return;
 
-		const size_t sizeInBytes = *pFrameCountIn * 2 * sizeof(float);
+		const size_t sizeInBytes = *pFrameCountIn * pEffectNode->config.channels * sizeof(float);
 
 		std::memcpy(ppFramesOut[0], ppFramesIn[0], sizeInBytes);
 
@@ -684,27 +689,17 @@ namespace luadio
 
 		if(lua_isfunction(L, -1))
 		{
-			void *framesIn = (void*)ppFramesIn[0];
-			void *frameCountIn = (void*)pFrameCountIn;
-			void *framesOut = (void*)ppFramesOut[0];
-			void *frameCountOut = (void*)pFrameCountOut;
-			int32_t channels = pEffectNode->config.channels;
-
-			lua_pushlightuserdata(L, framesIn);
-			lua_pushlightuserdata(L, frameCountIn);
-			lua_pushlightuserdata(L, framesOut);
-			lua_pushlightuserdata(L, frameCountOut);
-			lua_pushinteger(L, channels);
+			lua_pushlightuserdata(L, (void*)ppFramesIn[0]);
+			lua_pushlightuserdata(L, (void*)pFrameCountIn);
+			lua_pushlightuserdata(L, (void*)ppFramesOut[0]);
+			lua_pushlightuserdata(L, (void*)pFrameCountOut);
+			lua_pushinteger(L, pEffectNode->config.channels);
 
 			if(lua_pcall(L, 5, 0, 0) == 0)
 			{
-				const size_t sizeInSamples = *pFrameCountOut * 2;
-				pApp->concurrentBuffer.write(ppFramesOut[0], sizeInSamples);
-
+				pApp->concurrentBuffer.write(ppFramesOut[0], *pFrameCountOut * pEffectNode->config.channels);
 				if(pApp->recorder.is_recording())
-				{
-					pApp->recorder.on_process(ppFramesOut[0], *pFrameCountOut, 2);
-				}
+					pApp->recorder.on_process(ppFramesOut[0], *pFrameCountOut, pEffectNode->config.channels);
 			}
 		}
 
